@@ -2,7 +2,9 @@
 
 
 > Go实现一个分布式的缓存器
-
+> 
+> [教室](https://geektutu.com/post/geecache.html)
+<br/></br>
 ## 1.Cache-Basic LRU
 
 1.cache 主要结构是双向链表，固定内存
@@ -29,6 +31,7 @@ type Value interface {
 
 2.使用go 的testing包进行测试：所有的函数写成Test开头的，报错的地方使用t.Fatalf(errrorString),go test即能完成测试
 
+<br/></br>
 ## 2.单机并发缓存
 
 1.首先学习sync.Mutex互斥锁，lock and Unlock
@@ -41,6 +44,7 @@ type Value interface {
 流程 ⑶ ：缓存不存在，则调用 load 方法，load 调用 getLocally（分布式场景下会调用 getFromPeer 从其他节点获取），getLocally 调用用户回调函数
 ```
 
+<br/></br>
 ## 3.http服务端
 
 想要完成的结构如下
@@ -68,6 +72,7 @@ basePath，作为节点间通讯地址的前缀，默认是/_cache/
 
 3.暂时只在本地建立数据库并进行测试
 
+<br/></br>
 ## 4.一致性hash
 
 1.增加了一个Map结构
@@ -80,6 +85,8 @@ Add():增加一个实服务节点的时候设置相应虚拟服务节点的map�
 
 3.Map中映射的方式可以使用函数接口提供给用户自定义
 
+
+<br/></br>
 ## 5.分布式节点
 
 1.两个流程
@@ -108,6 +115,7 @@ main() 函数需要命令行传入 port 和 api 2 个参数，用来在指定端
 
 3.测试可以看到，我们并发了 3 个请求 ?key=Tom，从日志中可以看到，三次均选择了节点 8001，这是一致性哈希算法的功劳，但是发起了3次请求，且返回的是相同的数据
 
+<br/></br>
 ## 6.防止缓存击穿
 >缓存雪崩：缓存在同一时刻全部失效，造成瞬时DB请求量大、压力骤增，引起雪崩。缓存雪崩通常因为缓存服务器宕机、缓存的 key 设置了相同的过期时间等引起。
 缓存击穿：一个存在的key，在缓存过期的一刻，同时有大量的请求，这些请求都会击穿到 DB ，造成瞬时DB请求量大、压力骤增。
@@ -125,4 +133,33 @@ main() 函数需要命令行传入 port 和 api 2 个参数，用来在指定端
 5.测试会发现，三次对Tom的并发请求只会请求一次，注：在run.sh中，curl使用&能够实现并发,但其实，当并发的数量比较大的时候，for循环并不能赶上查询的速度，所以还是会查询多次。
 
 <em>但并发请求50次时为什么返回的次数并不是请求的次数？</em>
+
+<br/></br>
+## 7.protobuf 通信
+>[protobuf教程](https://geektutu.com/post/gee-day2.html)
+<br/>分为两步：
+<br/>1）在 .proto 文件中定义数据结构，并使用 protoc 生成 Go 代码（.proto 文件是跨平台的，还可以生成 C、Java 等其他源码文件。</br>
+<br/>2）在项目代码中引用生成的 Go 代码。</br>
+</br>
+
+1.新建package pb,定义Request和Response
+
+2.在PeerGetter.Get()->Group.getFromPeer()->HTTPPool.ServeHTTP()\httpGetter.Get()中修改接口调用方式
+
+
+<br/></br>
+## 总结
+lru：为了解决资源限制问题
+
+mutex：单机并发，给用户提供了自定义数据源的回调函数
+
+http:实现服务端
+
+consistentHash：实现一致性哈希算法，解决远程节点挑选问题
+
+distributed：创建HTTP客户端，实现多节点之间的通信
+
+singleflight：解决缓存击穿问题
+
+protobuf：优化节点间的通信性能
 
